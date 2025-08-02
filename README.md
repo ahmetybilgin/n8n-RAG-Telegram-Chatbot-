@@ -1,4 +1,5 @@
 # 🤖 AI Agent – RAG Telegram Chatbot n8n
+<img width="1264" height="1174" alt="Telegram AI Agent - RAG Chatbot" src="https://github.com/user-attachments/assets/b29d7af4-f645-48d3-a4b4-bc01035e23b0" />
 
 Transform your documents into dynamic sources of insight with **AI Agent – RAG Chatbot**, built on the powerful [n8n](https://n8n.io) workflow automation platform.
 
