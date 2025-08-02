@@ -1,0 +1,822 @@
+{
+  "name": "AI Agent - RAG Telegram Chatbot",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "97525460-2a4b-47e0-b52f-efd1fa141695",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -500,
+        40
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "9bc9d1bf-e860-44ad-a4a0-5884a576e03f",
+      "name": "Vector Store Retriever",
+      "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+      "typeVersion": 1,
+      "position": [
+        960,
+        1620
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5c110e26-c850-4ccd-9c80-fa1c828186bd",
+      "name": "Question and Answer Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+      "typeVersion": 1.3,
+      "position": [
+        820,
+        1380
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "68fd219a-3c4e-4839-9604-95b1aef2283c",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        560,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# 2. Chat with file, getting citations in reponse",
+        "height": 946,
+        "width": 2535,
+        "color": 3
+      },
+      "id": "28a54b9b-e42c-4508-a385-b9dbdb9a98bc",
+      "name": "Sticky Note11",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -840,
+        1280
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# 1. Setup: Fetch file from Google Drive, split it into chunks and insert into a vector database\n## Note that running this part multiple times will insert multiple copies into your DB",
+        "height": 1396,
+        "width": 2514,
+        "color": 4
+      },
+      "id": "7cfa6829-5bb7-42db-b3f1-8ec068e9066d",
+      "name": "Sticky Note12",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -840,
+        -140
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -740,
+        1440
+      ],
+      "id": "dc6fdf8c-39fa-4a00-beb0-92351cceefd5",
+      "name": "Telegram Trigger",
+      "webhookId": "1317f7e5-d475-4a4a-8e16-e7f7f8d98154",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "returnAll": true,
+        "filter": {
+          "driveId": {
+            "mode": "list",
+            "value": "My Drive"
+          }
+        },
+        "options": {}
+      },
+      "id": "633c7886-6e75-44e7-9ce8-ffba52d291fc",
+      "name": "Download Folder/ File",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        220,
+        40
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "file_url",
+              "type": "string",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bfdb784d-19f9-42b6-a249-9efd01e461fa",
+      "name": "Set Folder/ File URL in Google Drive",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -200,
+        40
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $node[\"Download Folder/ File\"].json[\"id\"] }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "ea6380ef-372c-407b-a1a4-0eb5b844e0c8",
+      "name": "Download File",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        1040,
+        60
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Add a new field called 'myNewField' to the JSON of the item\n$input.item.json.file_name = $input.item.binary.data.fileName;\n$input.item.json.file_ext = $input.item.binary.data.fileExtension;\n$input.item.json.file_url = $('Set Folder/ File URL in Google Drive').item.json.file_url\n\nreturn $input.item;"
+      },
+      "id": "571258c6-cd86-477d-9908-8d0f83d1c366",
+      "name": "Add in Metadata",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1400,
+        60
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Table_Name', ``, 'string') }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "a6f30982-02f4-4b2b-be24-a2bb9769478e",
+      "name": "Supabase Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        360
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        1620
+      ],
+      "id": "badcd389-6592-4e61-8aaa-2de610477f94",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "file_url",
+                "value": "={{ $json.file_url }}"
+              },
+              {
+                "name": "file_name",
+                "value": "={{ $('Add in Metadata').item.json.file_name }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "e28a2044-8924-47df-a9a5-2fd52f8d0c20",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "position": [
+        1240,
+        700
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chunkSize": 3000,
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "id": "da7b7179-b30f-456d-b7c2-5cdbfd3dcdb4",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "position": [
+        1220,
+        940
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "8b446f10-1ffd-4d05-89b3-28f52d50bbff",
+      "name": "Embeddings OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        880,
+        680
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "id": "21a268be-f96b-481f-b0c7-614c119bdf43",
+      "name": "Supabase Vector Store2",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        880,
+        1800
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-large",
+        "options": {}
+      },
+      "id": "6c97d079-4cf7-44d2-8e0a-fe2472acb613",
+      "name": "Embeddings OpenAI2",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1,
+      "position": [
+        880,
+        2020
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "5fe3c0d8-bd61-4943-b152-9e6315134520",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $('Telegram Trigger').item.json.body.message.from.first_name }}",
+              "rightValue": "={{ $json.first_name }}"
+            },
+            {
+              "id": "98a0ea91-0567-459c-bbce-06abc14a49ce",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $('Telegram Trigger').item.json.body.message.from.last_name }}",
+              "rightValue": "={{ $json.last_name }}"
+            },
+            {
+              "id": "18a96c1f-f2a0-4a2a-b789-606763df4423",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $('Telegram Trigger').item.json.body.message.from.id }}",
+              "rightValue": "={{ $json.id }}"
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "=",
+        "options": {}
+      },
+      "id": "2f244a15-cc19-4f24-b60a-a2cb458fe399",
+      "name": "Check User & Chat ID",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -120,
+        1440
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.body.message.chat.id }}",
+        "text": "=Could not process your message",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "4f72d9c6-e64c-45f8-b051-5e74aa891122",
+      "name": "Error message",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        360,
+        1940
+      ],
+      "typeVersion": 1.2,
+      "webhookId": "92e30708-dd8d-4318-add0-06cd300faf36",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "first_name",
+              "type": "string",
+              "value": "1"
+            },
+            {
+              "id": "1",
+              "name": "last_name",
+              "type": "string",
+              "value": "1"
+            },
+            {
+              "id": "1",
+              "name": "id",
+              "type": "number",
+              "value": 1
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "bc1b1839-1258-4d3d-9c09-3ce1e691e8de",
+      "name": "Validation",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -460,
+        1440
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "342f0883-d959-44a2-b80d-379e39c76218",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "leftValue": "={{ $json.body.message.text }}",
+                    "rightValue": ""
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "40324191-a248-4779-a3d7-2556a6d5c963",
+      "name": "Message Router",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        260,
+        1400
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "content": "## AI Agent - RAG Chatbot\nThis workflow automates file processing and Q&A by integrating Google Drive, Supabase, OpenAI, and Telegram. It downloads files from Google Drive, splits text into chunks, creates vector embeddings, stores them in Supabase, and then uses a chat model to answer queries based on the stored data.\n\nInstallation & Setup:\n\nAPI Credentials: Configure Google Drive, Supabase, OpenAI, and Telegram credentials.\nImport Workflow: Upload the JSON file in n8n.\nTest Trigger: Use the manual trigger (\"When clicking 'Test workflow'\") to validate the setup.\nCore Functions:\n\nFile Processing:\nDownloads files from Google Drive and adds metadata.\nSplits text into manageable chunks using a recursive text splitter.\nGenerates embeddings with OpenAI and stores them in Supabase vector stores.\nQ&A Mechanism:\nRetrieves relevant content from the vector store based on user queries.\nUses a language model to generate answers in a Q&A chain.\nTelegram Integration:\nReceives user messages via Telegram.\nValidates users before routing the message to the Q&A chain or sending error messages if validation fails.\nThis streamlined setup allows you to convert files into searchable data and provide intelligent, context-based answers via chat.\n---",
+        "height": 1000,
+        "width": 960
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -840,
+        240
+      ],
+      "typeVersion": 1,
+      "id": "fe5b3d2d-1e98-4157-a345-bd4de2a7c216",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.body.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "0d823251-0d82-44db-b2e4-ef768f7f5e36",
+      "name": "Telegram Response",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        1500,
+        1360
+      ],
+      "typeVersion": 1.2,
+      "webhookId": "6ca8ae8b-942c-45c8-aec6-66ba60bc095c",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.body.message.chat.id }}",
+        "text": "=Unable to process your message.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "6091f7f9-a194-4b79-a38a-b2b4c67c12d5",
+      "name": "Response Error message",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        1500,
+        1800
+      ],
+      "typeVersion": 1.2,
+      "webhookId": "bba7845e-08e4-4f1c-b0e2-df0cabcd9b22",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "1"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Set Folder/ File URL in Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Retriever": {
+      "ai_retriever": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "ai_retriever",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Folder/ File": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Folder/ File URL in Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Download Folder/ File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Add in Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add in Metadata": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store2": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Retriever",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check User & Chat ID": {
+      "main": [
+        [
+          {
+            "node": "Message Router",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validation": {
+      "main": [
+        [
+          {
+            "node": "Check User & Chat ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message Router": {
+      "main": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Question and Answer Chain": {
+      "main": [
+        [
+          {
+            "node": "Telegram Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response Error message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1"
+  },
+  "id": "1",
+  "webhookId": "1",
+  "tags": ["onurbolaca"]
+}
